@@ -1,28 +1,16 @@
-const peopleData = [
-    {
-        id: 1,
-        name: "John Doe",
-        photo: "https://www.kids-academyuae.com/wp-content/uploads/2020/01/Kids-academy-nursery-learning-gallery-22-800x600.jpg",
-        country: "USA",
-        city: "New York",
-        age: 30
-    },
-    {
-        id: 2,
-        name: "Jane Smith",
-        photo: "https://www.kids-academyuae.com/wp-content/uploads/2020/01/Kids-academy-nursery-learning-gallery-1-800x600.jpg",
-        country: "Canada",
-        city: "Toronto",
-        age: 25
-    }
-    // Add more data entries as needed
-];
+// Generate 30 fake data entries
+const peopleData = Array.from({ length: 30 }, (_, index) => ({
+    id: index + 1,
+    name: `Person ${index + 1}`,
+    photo: `https://randomuser.me/api/portraits/men/${index + 1}.jpg`,
+    country: ['USA', 'Canada', 'UK', 'Australia', 'Germany'][Math.floor(Math.random() * 5)],
+    city: ['New York', 'Toronto', 'London', 'Sydney', 'Berlin'][Math.floor(Math.random() * 5)],
+    age: Math.floor(Math.random() * 40) + 20
+}));
 
-// Initialize the table and filters when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-    populateFilters();
-    renderTable(peopleData);
-});
+let currentPage = 1;
+const rowsPerPage = 7;
+let filteredData = peopleData;
 
 function populateFilters() {
     const countries = [...new Set(peopleData.map(person => person.country))];
@@ -46,11 +34,15 @@ function populateFilters() {
     });
 }
 
-function renderTable(data) {
+function renderTable() {
     const tableBody = document.querySelector('#peopleTable tbody');
     tableBody.innerHTML = '';
 
-    data.forEach(person => {
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const paginatedData = filteredData.slice(start, end);
+
+    paginatedData.forEach(person => {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td><img src="${person.photo}" alt="${person.name}"></td>
@@ -61,6 +53,17 @@ function renderTable(data) {
         `;
         tableBody.appendChild(row);
     });
+
+    updatePaginationInfo();
+}
+
+function updatePaginationInfo() {
+    const pageInfo = document.getElementById('pageInfo');
+    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+
+    document.getElementById('prevPage').disabled = currentPage === 1;
+    document.getElementById('nextPage').disabled = currentPage === totalPages;
 }
 
 function filterData() {
@@ -68,22 +71,35 @@ function filterData() {
     const city = document.getElementById('cityFilter').value;
     const age = document.getElementById('ageFilter').value;
 
-    let filteredData = peopleData;
+    filteredData = peopleData.filter(person => 
+        (!country || person.country === country) &&
+        (!city || person.city === city) &&
+        (!age || person.age === parseInt(age))
+    );
 
-    if (country) {
-        filteredData = filteredData.filter(person => person.country === country);
-    }
-    if (city) {
-        filteredData = filteredData.filter(person => person.city === city);
-    }
-    if (age) {
-        filteredData = filteredData.filter(person => person.age === parseInt(age));
-    }
-
-    renderTable(filteredData);
+    currentPage = 1;
+    renderTable();
 }
 
-// Add event listeners to filters
+function handlePagination(direction) {
+    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    if (direction === 'prev' && currentPage > 1) {
+        currentPage--;
+    } else if (direction === 'next' && currentPage < totalPages) {
+        currentPage++;
+    }
+    renderTable();
+}
+
+// Event listeners
 document.getElementById('countryFilter').addEventListener('change', filterData);
 document.getElementById('cityFilter').addEventListener('change', filterData);
 document.getElementById('ageFilter').addEventListener('input', filterData);
+document.getElementById('prevPage').addEventListener('click', () => handlePagination('prev'));
+document.getElementById('nextPage').addEventListener('click', () => handlePagination('next'));
+
+// Initialize the table and filters when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    populateFilters();
+    renderTable();
+});
